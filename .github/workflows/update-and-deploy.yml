@@ -1,0 +1,96 @@
+name: Update data & deploy dashboard
+
+# The self-updating engine. On a weekly schedule (and on demand) this fetches
+# fresh layoff news, extracts structured records with Claude, commits the
+# updated dataset, and republishes the dashboard to GitHub Pages.
+#
+# NOTE: GitHub only runs scheduled workflows on the repository's DEFAULT branch.
+# Merge this to your default branch (e.g. main) for the weekly cron to fire.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"        # every Monday 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Pipeline mode"
+        type: choice
+        options: [run, backfill]
+        default: run
+      since:
+        description: "Backfill start month (YYYY-MM), only for backfill mode"
+        default: "2023-01"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/update-and-deploy.yml"
+
+permissions:
+  contents: write   # commit refreshed data back to the repo
+  pages: write      # publish to GitHub Pages
+  id-token: write   # required by deploy-pages
+
+concurrency:
+  group: "joblosstracker"
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r ingest/requirements.txt
+
+      - name: Run ingestion pipeline
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional: set repo variable EXTRACTION_MODEL to claude-haiku-4-5 to
+          # cut extraction cost for large weekly batches.
+          EXTRACTION_MODEL: ${{ vars.EXTRACTION_MODEL }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.mode }}" = "backfill" ]; then
+            python -m ingest.pipeline backfill --since "${{ inputs.since }}"
+          else
+            python -m ingest.pipeline run
+          fi
+
+      - name: Commit updated dataset
+        run: |
+          git config user.name "joblosstracker-bot"
+          git config user.email "actions@github.com"
+          if ! git diff --quiet -- web/data/layoffs.json; then
+            git add web/data/layoffs.json
+            git commit -m "data: refresh layoffs dataset ($(date -u +%Y-%m-%d))"
+            git push
+          else
+            echo "No dataset changes to commit."
+          fi
+
+  deploy:
+    needs: update
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}   # pick up the data commit pushed above
+
+      - uses: actions/configure-pages@v5
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

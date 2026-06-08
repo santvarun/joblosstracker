@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>India Job-Loss Tracker</title>
+  <meta name="description" content="A self-updating dashboard tracking job losses in India from verified news reports — by sector, region, and location, with AI-related layoffs flagged." />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <h1>India Job-Loss Tracker</h1>
+        <p class="tagline">Layoffs across India from verified news reports — sector, region &amp; location. AI-linked layoffs flagged.</p>
+      </div>
+      <div class="status">
+        <span id="updated" class="updated">—</span>
+        <span class="cadence">Auto-updated weekly</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="empty-banner" class="banner hidden">
+      <div>
+        <strong>No records yet.</strong>
+        The live dataset is empty — run the ingestion pipeline (or wait for the weekly job) to populate it.
+      </div>
+      <button id="load-sample" class="btn">Preview with sample data</button>
+    </div>
+
+    <div id="sample-banner" class="banner sample hidden">
+      <div><strong>Showing synthetic sample data</strong> for demonstration — these are not real reports.</div>
+      <button id="load-live" class="btn ghost">Switch to live data</button>
+    </div>
+
+    <!-- KPI cards -->
+    <section class="kpis" id="kpis"></section>
+
+    <!-- Filters -->
+    <section class="filters">
+      <div class="filter">
+        <label for="f-sector">Sector</label>
+        <select id="f-sector"><option value="">All sectors</option></select>
+      </div>
+      <div class="filter">
+        <label for="f-region">Region</label>
+        <select id="f-region"><option value="">All regions</option></select>
+      </div>
+      <div class="filter">
+        <label for="f-from">From</label>
+        <input type="month" id="f-from" />
+      </div>
+      <div class="filter">
+        <label for="f-to">To</label>
+        <input type="month" id="f-to" />
+      </div>
+      <div class="filter search">
+        <label for="f-search">Search</label>
+        <input type="text" id="f-search" placeholder="Company, city, keyword…" />
+      </div>
+      <div class="filter checkbox">
+        <label><input type="checkbox" id="f-ai" /> AI-related only</label>
+      </div>
+      <div class="filter measure">
+        <label>Measure by</label>
+        <div class="toggle" id="metric-toggle">
+          <button data-metric="headcount" class="active">Headcount</button>
+          <button data-metric="events">Layoff events</button>
+        </div>
+      </div>
+      <button id="reset" class="btn ghost small">Reset</button>
+    </section>
+
+    <!-- Charts -->
+    <section class="grid">
+      <div class="panel wide">
+        <h2>Layoffs over time</h2>
+        <div class="chart-wrap"><canvas id="chart-time"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>By sector</h2>
+        <div class="chart-wrap"><canvas id="chart-sector"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>By region</h2>
+        <div class="chart-wrap"><canvas id="chart-region"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Top states</h2>
+        <div class="chart-wrap"><canvas id="chart-state"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>By location</h2>
+        <div id="map"></div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="panel">
+      <div class="table-head">
+        <h2>Records <span id="record-count" class="muted"></span></h2>
+      </div>
+      <div class="table-wrap">
+        <table id="records">
+          <thead>
+            <tr>
+              <th>Date</th><th>Company</th><th>Sector</th><th>Location</th>
+              <th class="num">Headcount</th><th>AI</th><th>Source</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <p>Data compiled automatically from public news reports. Headcounts reflect figures stated in source articles; blank where unspecified. This is an aggregation tool, not an authoritative labour statistic.</p>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
