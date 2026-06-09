@@ -21,7 +21,7 @@ from .geo import resolve
 # Default canonical location; overridable for tests / alternate layouts.
 DATA_PATH = os.environ.get(
     "DATA_PATH",
-    os.path.join(os.path.dirname(__file__), "..", "web", "data", "layoffs.json"),
+    os.path.join(os.path.dirname(__file__), "..", "docs", "data", "layoffs.json"),
 )
 
 

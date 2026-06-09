@@ -1,11 +1,14 @@
-name: Update data & deploy dashboard
+name: Update layoffs data
 
 # The self-updating engine. On a weekly schedule (and on demand) this fetches
-# fresh layoff news, extracts structured records with Claude, commits the
-# updated dataset, and republishes the dashboard to GitHub Pages.
+# fresh layoff news, extracts structured records, and commits the updated
+# dataset to docs/data/layoffs.json.
+#
+# Publishing is handled by GitHub Pages "Deploy from a branch" (main /docs):
+# every commit to docs/ is auto-published by Pages — no deploy job, no
+# github-pages environment, nothing to gate.
 #
 # NOTE: GitHub only runs scheduled workflows on the repository's DEFAULT branch.
-# Merge this to your default branch (e.g. main) for the weekly cron to fire.
 
 on:
   schedule:
@@ -20,14 +23,9 @@ on:
       since:
         description: "Backfill start month (YYYY-MM), only for backfill mode"
         default: "2023-01"
-  push:
-    branches: [main]   # runs on any push to main; the bot's own data commits
-                       # use GITHUB_TOKEN and don't re-trigger, so there's no loop
 
 permissions:
   contents: write   # commit refreshed data back to the repo
-  pages: write      # publish to GitHub Pages
-  id-token: write   # required by deploy-pages
 
 concurrency:
   group: "joblosstracker"
@@ -42,13 +40,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      # Enable Pages here (this job has no environment gate) so the gated
-      # deploy job below is allowed to start on the very first run.
-      - name: Enable GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Install dependencies
         run: pip install -r ingest/requirements.txt
@@ -74,34 +65,10 @@ jobs:
         run: |
           git config user.name "joblosstracker-bot"
           git config user.email "actions@github.com"
-          if ! git diff --quiet -- web/data/layoffs.json; then
-            git add web/data/layoffs.json
+          if ! git diff --quiet -- docs/data/layoffs.json; then
+            git add docs/data/layoffs.json
             git commit -m "data: refresh layoffs dataset ($(date -u +%Y-%m-%d))"
             git push
           else
             echo "No dataset changes to commit."
           fi
-
-  deploy:
-    needs: update
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}   # pick up the data commit pushed above
-
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true   # auto-enable Pages (Source: GitHub Actions) — no manual settings step
-
-      - name: Upload dashboard artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: web
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
