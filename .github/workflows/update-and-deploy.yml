@@ -43,6 +43,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      # Enable Pages here (this job has no environment gate) so the gated
+      # deploy job below is allowed to start on the very first run.
+      - name: Enable GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Install dependencies
         run: pip install -r ingest/requirements.txt
 
