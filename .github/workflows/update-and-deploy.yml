@@ -21,10 +21,8 @@ on:
         description: "Backfill start month (YYYY-MM), only for backfill mode"
         default: "2023-01"
   push:
-    branches: [main]
-    paths:
-      - "web/**"
-      - ".github/workflows/update-and-deploy.yml"
+    branches: [main]   # runs on merge to main (the bot's own data commits
+                       # don't re-trigger, so there's no loop)
 
 permissions:
   contents: write   # commit refreshed data back to the repo
