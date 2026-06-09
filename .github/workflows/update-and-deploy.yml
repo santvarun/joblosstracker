@@ -87,6 +87,8 @@ jobs:
           ref: ${{ github.ref }}   # pick up the data commit pushed above
 
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true   # auto-enable Pages (Source: GitHub Actions) — no manual settings step
 
       - name: Upload dashboard artifact
         uses: actions/upload-pages-artifact@v3
