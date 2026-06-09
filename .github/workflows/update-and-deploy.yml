@@ -21,10 +21,8 @@ on:
         description: "Backfill start month (YYYY-MM), only for backfill mode"
         default: "2023-01"
   push:
-    branches: [main]
-    paths:
-      - "web/**"
-      - ".github/workflows/update-and-deploy.yml"
+    branches: [main]   # runs on any push to main; the bot's own data commits
+                       # use GITHUB_TOKEN and don't re-trigger, so there's no loop
 
 permissions:
   contents: write   # commit refreshed data back to the repo
@@ -51,14 +49,18 @@ jobs:
       - name: Run ingestion pipeline
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Optional: set repo variable EXTRACTION_MODEL to claude-haiku-4-5 to
-          # cut extraction cost for large weekly batches.
           EXTRACTION_MODEL: ${{ vars.EXTRACTION_MODEL }}
         run: |
+          # Default: FREE heuristic extraction (no API key, no credits used).
+          # To upgrade to Claude extraction later, add a repository VARIABLE
+          # USE_CLAUDE=true and the ANTHROPIC_API_KEY secret -- no code change.
+          LLM_FLAG="--no-llm"
+          if [ "${{ vars.USE_CLAUDE }}" = "true" ]; then LLM_FLAG=""; fi
+          echo "Extraction mode: ${LLM_FLAG:-Claude}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.mode }}" = "backfill" ]; then
-            python -m ingest.pipeline backfill --since "${{ inputs.since }}"
+            python -m ingest.pipeline backfill --since "${{ inputs.since }}" $LLM_FLAG
           else
-            python -m ingest.pipeline run
+            python -m ingest.pipeline run $LLM_FLAG
           fi
 
       - name: Commit updated dataset
@@ -85,6 +87,8 @@ jobs:
           ref: ${{ github.ref }}   # pick up the data commit pushed above
 
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true   # auto-enable Pages (Source: GitHub Actions) — no manual settings step
 
       - name: Upload dashboard artifact
         uses: actions/upload-pages-artifact@v3
