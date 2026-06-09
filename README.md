@@ -27,20 +27,29 @@ news (Google News RSS)  →  Claude extraction  →  data/layoffs.json  →  das
 
 ## One-time setup
 
-1. **Add your Anthropic API key** as a repository secret:
-   `Settings → Secrets and variables → Actions → New repository secret`
-   - Name: `ANTHROPIC_API_KEY`
-   - Value: your key from <https://console.anthropic.com>
-   - *(Optional)* add a repository **variable** `EXTRACTION_MODEL = claude-haiku-4-5`
-     to cut extraction cost on large weekly batches.
-2. **Enable GitHub Pages**: `Settings → Pages → Build and deployment → Source: GitHub Actions`.
-3. **Merge this to your default branch (`main`).** GitHub only runs scheduled
+By default the builder runs in **free heuristic mode** — no API key, no credits.
+
+1. **Merge this to your default branch (`main`).** GitHub only runs scheduled
    workflows on the default branch, so the weekly cron won't fire from a feature
    branch.
-4. *(Optional)* **Seed historical data**: go to `Actions → Update data & deploy
+2. **Enable GitHub Pages**: `Settings → Pages → Build and deployment → Source: GitHub Actions`.
+3. *(Optional)* **Seed historical data**: go to `Actions → Update data & deploy
    → Run workflow`, choose **backfill**, set the start month (default `2023-01`),
    and run it once. Coverage for older months depends on what free news search
    still returns.
+
+### Optional: upgrade to Claude extraction (better data quality)
+
+Heuristic mode is keyword-based and noisier. To switch on Claude extraction —
+which fills in sector, location, headcount, and AI-relatedness far more
+accurately — add **both** of these in repo settings (no code change needed):
+
+- a repository **secret** `ANTHROPIC_API_KEY` (from <https://console.anthropic.com>)
+- a repository **variable** `USE_CLAUDE` set to `true`
+  (`Settings → Secrets and variables → Actions → Variables`)
+
+*(Optionally also set variable `EXTRACTION_MODEL = claude-haiku-4-5` to cut cost
+on large batches.)* Remove the variable to drop back to free mode anytime.
 
 After that it runs on its own every Monday. Your dashboard lives at
 `https://<your-username>.github.io/<repo>/`.
