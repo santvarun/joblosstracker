@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "generated_at": null,
+    "count": 0,
+    "ai_related_count": 0,
+    "total_headcount": 0,
+    "version": 1,
+    "note": "Layoffs in India compiled from verified news reports via an automated, self-updating pipeline. Run `python -m ingest.pipeline run` (or let the weekly GitHub Action run) to populate this file."
+  },
+  "records": []
+}
